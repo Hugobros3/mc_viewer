@@ -3,6 +3,7 @@
 #include "cunk/print.h"
 #include "cunk/memory.h"
 #include "cunk/io.h"
+#include "cunk/camera.h"
 
 #include "enklume.h"
 #include "nbt.h"
@@ -24,7 +25,7 @@ static Window* window;
 static GfxCtx* ctx;
 static GfxShader* shader;
 
-GLFWwindow* get_glfw_handle(Window*);
+GLFWwindow* gfx_get_glfw_handle(Window*);
 
 struct {
     bool wireframe, face_culling, depth_testing;
@@ -164,7 +165,9 @@ static void draw_chunks() {
     gfx_cmd_use_shader(ctx, shader);
 
     Mat4f matrix = identity_mat4f;
-    matrix = mul_mat4f(camera_get_view_mat4(&camera, window), matrix);
+    size_t width, height;
+    gfx_get_window_size(window, &width, &height);
+    matrix = mul_mat4f(camera_get_view_mat4(&camera, width, height), matrix);
 
     gfx_cmd_set_shader_extern(ctx, "myMatrix", &matrix.arr);
     gfx_cmd_set_shader_extern(ctx, "render_mode", &config.render_mode);
@@ -196,7 +199,7 @@ static int frame = 0;
 
 int main(int argc, char* argv[]) {
     window = gfx_create_window("Hello", 640, 480, &ctx);
-    glfwSetKeyCallback(get_glfw_handle(window), key_callback);
+    glfwSetKeyCallback(gfx_get_glfw_handle(window), key_callback);
 
     char* test_vs, *test_fs;
     size_t test_vs_size, test_fs_size;
@@ -228,13 +231,13 @@ int main(int argc, char* argv[]) {
 
     glfwSwapInterval(config.vsync ? 1 : 0);
 
-    while (!glfwWindowShouldClose(get_glfw_handle(window))) {
+    while (!glfwWindowShouldClose(gfx_get_glfw_handle(window))) {
         double then = glfwGetTime();
         camera_move_freelook(&camera, window, &camera_state);
 
         draw_chunks();
 
-        glfwSwapBuffers(get_glfw_handle(window));
+        glfwSwapBuffers(gfx_get_glfw_handle(window));
         if (config.finish)
             gfx_wait_for_idle();
 
@@ -260,7 +263,7 @@ int main(int argc, char* argv[]) {
         int ifps = (int) fps;
 
         const char* t = format_string("FPS: %d", ifps);
-        glfwSetWindowTitle(get_glfw_handle(window), t);
+        glfwSetWindowTitle(gfx_get_glfw_handle(window), t);
         free(t);
 
         last_frames_times[frame % SMOOTH_FPS_ACC_FRAMES] = now;
